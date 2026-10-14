@@ -1,0 +1,6 @@
+*~
+.#*
+cmake-build/
+__cmake_systeminformation
+apps/bin/
+compile_commands.json
