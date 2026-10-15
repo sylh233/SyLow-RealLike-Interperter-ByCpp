@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 
+namespace cbycpp {
 namespace scanner {
 class Variant {
   public:
@@ -38,3 +39,4 @@ inline std::string Variant::to_string() const {
 	}
 }
 } // namespace scanner
+} // namespace cbycpp

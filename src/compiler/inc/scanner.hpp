@@ -1,19 +1,32 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <variant.hpp>
 #include <vector>
-
+namespace cbycpp {
 namespace scanner {
 void Hello();
 
-enum TokenTypes { PLUS, MINUS, LEFT_PAREN, RIGHT_PAREN, NUM };
+enum TokenTypes {
+	PLUS,
+	MINUS,
+	STAR,
+	SLASH, // +-*/
+
+	LEFT_PAREN,
+	RIGHT_PAREN, // (,)
+
+	NUM,
+};
+
 const std::unordered_map<TokenTypes, std::string> type_map = {
-    {PLUS, "PLUS"},           {MINUS, "MINUS"}, {LEFT_PAREN, "L_PAREN"},
-    {RIGHT_PAREN, "R_PAREN"}, {NUM, "NUM"},
+    {PLUS, "PLUS"},   {MINUS, "MINUS"},        {STAR, "STAR"},
+    {SLASH, "SLASH"}, {LEFT_PAREN, "L_PAREN"}, {RIGHT_PAREN, "R_PAREN"},
+    {NUM, "NUM"},
 };
 
 class Token {
@@ -81,3 +94,4 @@ inline char Scanner::cur_advance() { return bytes->at(current++); }
 
 inline char Scanner::cur_char() { return bytes->at(current); }
 } // namespace scanner
+} // namespace cbycpp

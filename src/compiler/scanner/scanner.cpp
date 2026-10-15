@@ -1,6 +1,7 @@
 #include <iostream>
 #include <scanner.hpp>
 
+namespace cbycpp {
 namespace scanner {
 void Hello() { std::cout << "Hello" << std::endl; }
 
@@ -31,6 +32,12 @@ std::vector<Token> *Scanner::scan(std::string &b) {
 			break;
 		case '-':
 			tokens->emplace_back(lines, MINUS, std::string(1, c));
+			break;
+		case '*':
+			tokens->emplace_back(lines, STAR, std::string(1, c));
+			break;
+		case '/':
+			tokens->emplace_back(lines, SLASH, std::string(1, c));
 			break;
 		case '(':
 			tokens->emplace_back(lines, LEFT_PAREN, std::string(1, c));
@@ -65,3 +72,4 @@ void Scanner::scan_number(std::vector<Token> *tokens) {
 }
 
 } // namespace scanner
+} // namespace cbycpp

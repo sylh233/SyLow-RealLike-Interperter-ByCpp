@@ -1,7 +1,8 @@
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/. src_list)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/scanner scanner_src)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/parser parser_src)
+
 set(inc_dir ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 set(private_inc_dir ${CMAKE_CURRENT_SOURCE_DIR}/private_inc)
-file(GLOB inc_list ${inc_dir}/*.hpp)
 
 add_library(scanner)
 target_include_directories(scanner
@@ -9,7 +10,7 @@ target_include_directories(scanner
   PRIVATE ${private_inc_dir}
 )
 target_sources(scanner
-  PRIVATE ${src_list}
-  PRIVATE ${inc_list}
+  PRIVATE ${scanner_src}
+  PRIVATE ${parser_src}
 )
 target_compile_features(scanner PRIVATE cxx_std_17)
