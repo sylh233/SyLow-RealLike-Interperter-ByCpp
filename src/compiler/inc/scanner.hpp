@@ -2,11 +2,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <variant.hpp>
 #include <vector>
+
 namespace cbycpp {
 namespace scanner {
 void Hello();
@@ -21,24 +23,26 @@ enum TokenTypes {
 	RIGHT_PAREN, // (,)
 
 	NUM,
+	FLOAT,
 };
 
 const std::unordered_map<TokenTypes, std::string> type_map = {
     {PLUS, "PLUS"},   {MINUS, "MINUS"},        {STAR, "STAR"},
     {SLASH, "SLASH"}, {LEFT_PAREN, "L_PAREN"}, {RIGHT_PAREN, "R_PAREN"},
-    {NUM, "NUM"},
+    {NUM, "NUM"},     {FLOAT, "FLOAT"},
 };
 
 class Token {
   private:
+	// const std::optional<Variant> literal;
+
+  public:
 	const int lines;
 	const TokenTypes type;
 	const std::string lexeme;
-	const std::optional<Variant> literal;
 
-  public:
-	Token(int lines, TokenTypes type, std::string lexeme,
-	      std::optional<Variant> literal = std::nullopt);
+	Token(int lines, TokenTypes type, std::string lexeme);
+	// std::optional<Variant> literal = std::nullopt);
 	std::string toString();
 	std::string getTypeString();
 };
@@ -52,13 +56,15 @@ class Scanner {
 	void scan_number(std::vector<Token> *tokens);
 	inline char cur_advance();
 	inline char cur_char();
+	inline bool match(char c);
 
 	std::size_t lines{};
 	std::size_t start{}, current{};
 	std::string *bytes;
 
   public:
-	std::vector<Token> *scan(std::string &input_bytes);
+	using vTokens = std::vector<Token>;
+	std::unique_ptr<vTokens> scan(std::string &input_bytes);
 };
 
 inline bool Scanner::is_number(char c) const {
@@ -93,5 +99,14 @@ inline bool Scanner::is_end() const {
 inline char Scanner::cur_advance() { return bytes->at(current++); }
 
 inline char Scanner::cur_char() { return bytes->at(current); }
+
+inline bool Scanner::match(char c) {
+	if (cur_char() == c) {
+		current++;
+		return true;
+	} else
+		return false;
+}
+
 } // namespace scanner
 } // namespace cbycpp
