@@ -5,4 +5,5 @@ add_subdirectory(compiler)
 add_library(cbycpp_lib INTERFACE)
 target_link_libraries(cbycpp_lib
   INTERFACE scanner
+  INTERFACE parser
 )

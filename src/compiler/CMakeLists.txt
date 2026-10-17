@@ -11,6 +11,15 @@ target_include_directories(scanner
 )
 target_sources(scanner
   PRIVATE ${scanner_src}
-  PRIVATE ${parser_src}
 )
 target_compile_features(scanner PRIVATE cxx_std_17)
+
+add_library(parser)
+target_include_directories(parser
+  PUBLIC ${inc_dir}
+  PRIVATE ${private_inc_dir}
+)
+target_sources(parser
+  PRIVATE ${parser_src}
+)
+target_compile_features(parser PRIVATE cxx_std_17)

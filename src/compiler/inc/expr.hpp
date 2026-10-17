@@ -53,7 +53,6 @@ class Unary {
 
 	Unary(scanner::Token &op, pExpr opd) : op(op), opd(std::move(opd)) {}
 };
-
 } // namespace parser
 } // namespace cbycpp
 
