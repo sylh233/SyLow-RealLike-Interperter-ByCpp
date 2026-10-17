@@ -22,14 +22,14 @@ enum TokenTypes {
 	LEFT_PAREN,
 	RIGHT_PAREN, // (,)
 
-	NUM,
+	INT,
 	FLOAT,
 };
 
 const std::unordered_map<TokenTypes, std::string> type_map = {
     {PLUS, "PLUS"},   {MINUS, "MINUS"},        {STAR, "STAR"},
     {SLASH, "SLASH"}, {LEFT_PAREN, "L_PAREN"}, {RIGHT_PAREN, "R_PAREN"},
-    {NUM, "NUM"},     {FLOAT, "FLOAT"},
+    {INT, "INT"},     {FLOAT, "FLOAT"},
 };
 
 class Token {

@@ -75,7 +75,7 @@ void Scanner::scan_number(vTokens *tokens) {
 	// std::string lexeme = bytes->substr(start, current - start);
 	// std::uint32_t value = std::stoi(lexeme);
 	// std::optional<Variant> variant = Variant(&value, Variant::Type::I32);
-	tokens->emplace_back(lines, NUM, bytes->substr(start, current - start));
+	tokens->emplace_back(lines, INT, bytes->substr(start, current - start));
 	return;
 }
 

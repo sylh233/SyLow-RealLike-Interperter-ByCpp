@@ -13,7 +13,7 @@ namespace cbycpp {
 namespace parser {
 class Parser {
   public:
-	using pExpr = std::unique_ptr<Expr>;
+	using pExpr = parser::pExpr;
 	pExpr parse(std::unique_ptr<scanner::Scanner::vTokens> tokens);
 
   private:

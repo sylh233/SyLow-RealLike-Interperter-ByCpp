@@ -1,37 +1,60 @@
 #pragma once
 
+#include <cstdint>
 #include <expr.hpp>
 #include <functional>
 #include <variant.hpp>
-#include <cstdint>
+#include <variant>
 
 namespace cbycpp {
 namespace parser {
-class ExprVisitor {
+class Evalator {
   public:
-	virtual VisitorReturn visit(Binary &binary) = 0;
-	virtual VisitorReturn visit(Literal &literal) = 0;
-	virtual VisitorReturn visit(Grouping &grouping) = 0;
-	virtual VisitorReturn visit(Unary &unary) = 0;
-
-	virtual ~ExprVisitor() = default;
-};
-
-class Evalator : public ExprVisitor {
-  public:
-	VisitorReturn visit(Binary &binary) override;
-	VisitorReturn visit(Literal &literal) override;
-	VisitorReturn visit(Grouping &grouping) override;
-	VisitorReturn visit(Unary &unary) override;
+	VisitorReturn visit(Expr &expr);
 
   private:
-	template <typename N, typename Op>
-	N numBinary(scanner::Variant *p_left, scanner::Variant *p_right, Op op) {
-		N l_v{}, r_v{};
-		p_left->get_value(&l_v);
-		p_right->get_value(&r_v);
-		return op(l_v, r_v);
+	scanner::Variant visitExpr(Expr &expr);
+	scanner::Variant visitBinary(Binary &binary);
+	scanner::Variant visitLiteral(Literal &literal);
+	scanner::Variant visitGrouping(Grouping &grouping);
+	scanner::Variant visitUnary(Unary &unary);
+
+	inline double ifIntToDouble(scanner::Variant &var) {
+		if (std::holds_alternative<int>(var)) {
+			return static_cast<double>(std::get<int>(var));
+		} else {
+			return std::get<double>(var);
+		}
+	}
+
+	template <typename Op>
+	inline scanner::Variant numBinary(scanner::Variant left,
+	                                  scanner::Variant right, Op op) {
+		if (std::holds_alternative<int>(left) &&
+		    std::holds_alternative<int>(right)) {
+			return op(std::get<int>(left), std::get<int>(right));
+		} else {
+			return op(ifIntToDouble(left), ifIntToDouble(right));
+		}
 	}
 };
 } // namespace parser
 } // namespace cbycpp
+
+/*template <typename N, typename Op>
+    N numBinary(scanner::Variant *p_left, scanner::Variant *p_right, Op op) {
+        N l_v{}, r_v{};
+        p_left->get_value(&l_v);
+        p_right->get_value(&r_v);
+        return op(l_v, r_v);
+        }*/
+
+/*class ExprVisitor {
+  public:
+    virtual VisitorReturn visit(Binary &binary) = 0;
+    virtual VisitorReturn visit(Literal &literal) = 0;
+    virtual VisitorReturn visit(Grouping &grouping) = 0;
+    virtual VisitorReturn visit(Unary &unary) = 0;
+
+    virtual ~ExprVisitor() = default;
+    };*/
