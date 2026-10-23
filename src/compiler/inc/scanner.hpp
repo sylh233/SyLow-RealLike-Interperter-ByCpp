@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <exception.hpp>
 #include <memory>
 #include <optional>
 #include <string>
@@ -36,6 +35,13 @@ enum TokenTypes {
 	CHAR,
 	STRING,
 	IDENTIFIER,
+	TRUE,
+	FALSE,
+	NIL,
+
+	END,
+
+	WRITE,
 };
 
 const std::unordered_map<TokenTypes, std::string> type_map = {
@@ -58,6 +64,18 @@ const std::unordered_map<TokenTypes, std::string> type_map = {
     {EQUAL_EQUAL, "E_EQUAL"},
     {BANG, "BANG"},
     {BANG_EQUAL, "B_EQUAL"},
+    {TRUE, "TRUE"},
+    {FALSE, "FALSE"},
+    {NIL, "NULL"},
+    {END, "EOF"},
+    {WRITE, "WRITE"},
+};
+
+const std::unordered_map<std::string, TokenTypes> keywords_map = {
+    {"true", TRUE},
+    {"false", FALSE},
+    {"null", NIL},
+    {"Write", WRITE},
 };
 
 class Token {
@@ -71,8 +89,8 @@ class Token {
 
 	Token(int lines, TokenTypes type, std::string lexeme);
 	// std::optional<Variant> literal = std::nullopt);
-	std::string toString();
-	std::string getTypeString();
+	std::string toString() const;
+	std::string getTypeString() const;
 };
 
 class Scanner {
@@ -86,6 +104,7 @@ class Scanner {
 	void scan_string(std::vector<Token> *tokens);
 	void scan_char(std::vector<Token> *tokens);
 	void scan_identifier(std::vector<Token> *tokens);
+	bool match_keyword(std::vector<Token> *tokens);
 
 	inline char cur_advance();
 	inline char cur_char();
@@ -117,7 +136,7 @@ inline bool Scanner::is_letterN_(char c) const {
 }
 
 inline bool Scanner::is_letterN_Nnumber(char c) const {
-	if (is_number(c) && is_letterN_(c))
+	if (is_number(c) || is_letterN_(c))
 		return true;
 	else
 		return false;
@@ -131,9 +150,19 @@ inline bool Scanner::is_end() const {
 		return true;
 }
 
-inline char Scanner::cur_advance() { return bytes->at(current++); }
+inline char Scanner::cur_advance() {
+	if (is_end())
+		return '\0';
+	else
+		return bytes->at(current++);
+}
 
-inline char Scanner::cur_char() { return bytes->at(current); }
+inline char Scanner::cur_char() {
+	if (is_end())
+		return '\0';
+	else
+		return bytes->at(current);
+}
 
 inline bool Scanner::match(char c) {
 	if (!is_end() && cur_char() == c) {
@@ -161,11 +190,6 @@ inline char Scanner::esc_char() {
 		}
 	}
 	return cur_advance();
-}
-
-inline void Scanner::expect(char c, std::string msg) {
-	if (!match(c))
-		throw exception::ScanException(cur_char(), lines, msg);
 }
 
 } // namespace scanner

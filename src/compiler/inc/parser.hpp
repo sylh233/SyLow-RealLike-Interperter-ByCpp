@@ -8,15 +8,23 @@
 #include <utility>
 #include <variant.hpp>
 #include <vector>
+#include <statement.hpp>
 
 namespace cbycpp {
 namespace parser {
 class Parser {
   public:
-	using pExpr = parser::pExpr;
-	pExpr parse(std::unique_ptr<scanner::Scanner::vTokens> tokens);
+	pStmt parse(std::unique_ptr<scanner::Scanner::vTokens> tokens);
+	pExpr parse_expr(std::unique_ptr<scanner::Scanner::vTokens> tokens);
 
   private:
+    pStmt statement();
+	pStmt writeStmt();
+	pStmt exprStmt();
+
+	pExpr expression();
+	pExpr equal();
+	pExpr comparison();
 	pExpr term();
 	pExpr factor();
 	pExpr unary();
@@ -24,15 +32,17 @@ class Parser {
 
 	std::size_t current{};
 	scanner::Scanner::vTokens *tokens_pointer;
-	inline scanner::Token cur_token() { return tokens_pointer->at(current); }
-	inline scanner::Token pre_token() {
+	inline scanner::Token cur_token() const {
+		return tokens_pointer->at(current);
+	}
+	inline scanner::Token pre_token() const {
 		return tokens_pointer->at(current - 1);
 	}
 	inline scanner::Token cur_advance() {
 		return tokens_pointer->at(current++);
 	}
-	inline bool is_end() {
-		if (current < tokens_pointer->size())
+	inline bool is_end() const {
+		if (current < tokens_pointer->size() - 1) // EOF
 			return false;
 		else
 			return true;
@@ -52,6 +62,7 @@ class Parser {
 		}
 		return false;
 	}
+	inline scanner::Token expect(scanner::TokenTypes type, std::string msg);
 };
 } // namespace parser
 } // namespace cbycpp

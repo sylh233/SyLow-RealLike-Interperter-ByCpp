@@ -3,6 +3,7 @@
 #include <iostream>
 #include <parser.hpp>
 #include <scanner.hpp>
+#include <statement.hpp>
 #include <string>
 
 int main() {
@@ -17,26 +18,32 @@ int main() {
 		if (bytes.length() == 0 || bytes.at(0) == 'e')
 			break;
 		auto t = s1.scan(bytes);
-		std::cout << "AST:" << std::endl;
-		for (auto &token : *t) {
-			std::cout << token.toString() << std::endl;
-		}
-		std::unique_ptr<parser::Evalator> visitor;
-		visitor.reset(new parser::Evalator());
+		// std::cout << "TOKENS:" << std::endl;
+		// for (auto &token : *t) {
+		// 	std::cout << token.toString() << std::endl;
+		// }
+		
+		// std::unique_ptr<parser::Evalator> visitor;
+		// visitor.reset(new parser::Evalator());
 
 		parser::Parser p1{};
-		auto expr = p1.parse(std::move(t));
+		auto stmt = p1.parse(std::move(t));
 
-		auto returnT = visitor->visit(*expr);
+		auto visitor = parser::Executor();
 
-		if (std::holds_alternative<scanner::Variant>(returnT)) {
-			auto var = std::get<scanner::Variant>(returnT);
-			if (std::holds_alternative<int>(var)) {
-				std::cout << "Result = " << std::get<int>(var) << std::endl;
-			} else if (std::holds_alternative<double>(var)) {
-				std::cout << "Result = " << std::get<double>(var) << std::endl;
-			}
+		if (stmt != nullptr) {
+			visitor.visit(*stmt);
 		}
+
+		// parser::AST_printer astp{};
+
+		// std::cout << astp.visit(*expr) << std::endl;
+
+		// if (expr != nullptr) {
+		// 	auto var = visitor->visit(*expr);
+		// 	std::cout << "Result = " << scanner::VTStr_with_quote(var)
+		// 	          << std::endl;
+		// }
 	}
 
 	return 0;

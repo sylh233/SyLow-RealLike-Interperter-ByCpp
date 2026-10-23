@@ -2,7 +2,7 @@
 
 namespace cbycpp {
 namespace parser {
-VisitorReturn Evalator::visit(Expr &expr) { return visitExpr(expr); }
+scanner::Variant Evalator::visit(Expr &expr) { return visitExpr(expr); }
 
 scanner::Variant Evalator::visitExpr(Expr &expr) {
 	if (std::holds_alternative<Binary>(expr)) {
@@ -22,17 +22,51 @@ scanner::Variant Evalator::visitBinary(Binary &binary) {
 	auto right = visitExpr(*binary.right);
 	auto op = binary.op;
 
-	switch (op.type) {
-	case scanner::PLUS:
-		return numBinary(left, right, std::plus<>{});
-	case scanner::MINUS:
-		return numBinary(left, right, std::minus<>{});
-	case scanner::STAR:
-		return numBinary(left, right, std::multiplies<>{});
-	case scanner::SLASH:
-		return numBinary(left, right, std::divides<>{});
-	default:
-		break;
+	if (std::holds_alternative<std::string>(left) ||
+	    std::holds_alternative<std::string>(right)) {
+		switch (op.type) {
+		case scanner::PLUS:
+			return strBinary(left, right, std::plus<>{});
+		case scanner::LESS:
+			return strBinary(left, right, std::less<>{});
+		case scanner::LESS_EQUAL:
+			return strBinary(left, right, std::less_equal<>{});
+		case scanner::GREATER:
+			return strBinary(left, right, std::greater<>{});
+		case scanner::GREATER_EQUAL:
+			return strBinary(left, right, std::greater_equal<>{});
+		case scanner::EQUAL_EQUAL:
+			return strBinary(left, right, std::equal_to<>{});
+		case scanner::BANG_EQUAL:
+			return strBinary(left, right, std::not_equal_to<>{});
+		default:
+			break;
+		}
+	} else {
+		switch (op.type) {
+		case scanner::PLUS:
+			return numBinary(left, right, std::plus<>{});
+		case scanner::MINUS:
+			return numBinary(left, right, std::minus<>{});
+		case scanner::STAR:
+			return numBinary(left, right, std::multiplies<>{});
+		case scanner::SLASH:
+			return numBinary(left, right, std::divides<>{});
+		case scanner::LESS:
+			return numBinary(left, right, std::less<>{});
+		case scanner::LESS_EQUAL:
+			return numBinary(left, right, std::less_equal<>{});
+		case scanner::GREATER:
+			return numBinary(left, right, std::greater<>{});
+		case scanner::GREATER_EQUAL:
+			return numBinary(left, right, std::greater_equal<>{});
+		case scanner::EQUAL_EQUAL:
+			return numBinary(left, right, std::equal_to<>{});
+		case scanner::BANG_EQUAL:
+			return numBinary(left, right, std::not_equal_to<>{});
+		default:
+			break;
+		}
 	}
 
 	return scanner::Variant();
@@ -45,6 +79,16 @@ scanner::Variant Evalator::visitLiteral(Literal &literal) {
 		return std::stoi(lit.lexeme);
 	case scanner::FLOAT:
 		return std::stod(lit.lexeme);
+	case scanner::CHAR:
+		return lit.lexeme.at(0);
+	case scanner::STRING:
+		return lit.lexeme;
+	case scanner::TRUE:
+		return true;
+	case scanner::FALSE:
+		return false;
+	case scanner::NIL:
+		return std::monostate{};
 	default:
 		break;
 	}
@@ -59,16 +103,124 @@ scanner::Variant Evalator::visitUnary(Unary &unary) {
 
 	switch (op.type) {
 	case scanner::MINUS:
+		if (std::holds_alternative<std::string>(opd))
+			break;
+		opd = ifNullToInt(opd);
+		opd = ifCharToInt(opd);
+		opd = ifBoolToInt(opd);
 		if (std::holds_alternative<int>(opd)) {
 			return -std::get<int>(opd);
 		} else {
-			return -ifIntToDouble(opd);
+			return -std::get<double>(ifIntToDouble(opd));
 		}
+	case scanner::BANG:
+		return !toBool(opd);
 	default:
 		break;
 	}
 	return scanner::Variant();
 }
+
+std::string AST_printer::visit(Expr &expr) {
+	layers = 0;
+	std::string head = "<AST>:{";
+	std::string child = visitExpr(expr);
+	std::string rear = "}";
+	return head + "\n" + child + "\n" + rear;
+}
+
+std::string AST_printer::visitExpr(Expr &expr) {
+	std::string expr_str;
+	if (std::holds_alternative<Binary>(expr)) {
+		expr_str = visitBinary(std::get<Binary>(expr));
+	} else if (std::holds_alternative<Literal>(expr)) {
+		expr_str = visitLiteral(std::get<Literal>(expr));
+	} else if (std::holds_alternative<Grouping>(expr)) {
+		expr_str = visitGrouping(std::get<Grouping>(expr));
+	} else if (std::holds_alternative<Unary>(expr)) {
+		expr_str = visitUnary(std::get<Unary>(expr));
+	}
+	return expr_str;
+}
+
+std::string AST_printer::visitBinary(Binary &binary) {
+	layers++;
+	auto op = binary.op;
+	std::string head =
+	    std::string(layers, '\t') + "<BINARY:" + op.toString() + ">:{";
+	auto left = visitExpr(*binary.left);
+	auto right = visitExpr(*binary.right);
+	std::string child = left + ",\n" + right;
+	std::string rear = std::string(layers, '\t') + "}";
+	layers--;
+	return head + "\n" + child + "\n" + rear;
+}
+
+std::string AST_printer::visitLiteral(Literal &literal) {
+	auto lit = literal.literal;
+
+	layers++;
+	std::string lit_str =
+	    std::string(layers, '\t') + "<LITERAL:" + lit.toString() + ">";
+	layers--;
+	return lit_str;
+}
+
+std::string AST_printer::visitGrouping(Grouping &grouping) {
+	layers++;
+	auto expr = visitExpr(*grouping.expr);
+	std::string head = std::string(layers, '\t') + "<Grouping>:{";
+	std::string rear = std::string(layers, '\t') + "}";
+	layers--;
+	return head + "\n" + expr + "\n" + rear;
+}
+
+std::string AST_printer::visitUnary(Unary &unary) {
+	auto op = unary.op;
+
+	layers++;
+	std::string head =
+	    std::string(layers, '\t') + "<UNARY:" + op.toString() + ">:{";
+	auto opd = visitExpr(*unary.opd);
+	std::string rear = std::string(layers, '\t') + "}";
+	layers--;
+	return head + "\n" + opd + "\n" + rear;
+}
+
+/*
+  <+
+      12
+      23
+  >
+
+  <+ <+
+        1
+        2
+     >
+     <grouping 10>
+  >
+
+  [PLUS "+" line:0]:{
+      [INT "100" line:0],
+      [INT "200" line:0]
+  }
+
+  [MINUS "-" line:1]:{
+      [FLOAT "1.2" line:1]
+  }
+
+  [Grouping]:{
+      [MINUS "-" line:1]:{
+          [FLOAT "1.2" line:1]
+      }
+  }
+
+  [ + -- 1
+      |- 2
+  ]
+  (+ 1,2)
+  <1 + 2>
+ */
 
 } // namespace parser
 } // namespace cbycpp

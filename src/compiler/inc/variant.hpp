@@ -8,7 +8,11 @@
 
 namespace cbycpp {
 namespace scanner {
-using Variant = std::variant<std::monostate, int, double, char, std::string>;
+using Variant =
+    std::variant<std::monostate, int, double, char, std::string, bool>;
+
+std::string var_to_string(Variant &var);
+std::string VTStr_with_quote(Variant &var);
 
 } // namespace scanner
 } // namespace cbycpp

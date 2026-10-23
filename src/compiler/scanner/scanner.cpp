@@ -1,3 +1,4 @@
+#include <exception.hpp>
 #include <iostream>
 #include <scanner.hpp>
 
@@ -8,7 +9,7 @@ void Hello() { std::cout << "Hello" << std::endl; }
 Token::Token(int line, TokenTypes type, std::string lexeme)
     : lines(line), type(type), lexeme(lexeme) {}
 
-std::string Token::toString() {
+std::string Token::toString() const {
 	// std::string literal_str = " ";
 	// if (this->literal)
 	// 	literal_str += this->literal.value().to_string() + " ";
@@ -16,7 +17,7 @@ std::string Token::toString() {
 	       " line:" + std::to_string(this->lines) + "]";
 }
 
-std::string Token::getTypeString() { return type_map.at(this->type); }
+std::string Token::getTypeString() const { return type_map.at(this->type); }
 
 std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 	vTokens *tokens = new vTokens;
@@ -102,6 +103,7 @@ std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 			// }
 		}
 	}
+	tokens->emplace_back(lines, END, "");
 	return std::unique_ptr<vTokens>(tokens);
 }
 
@@ -125,15 +127,15 @@ void Scanner::scan_number(vTokens *tokens) {
 }
 
 void Scanner::scan_string(std::vector<Token> *tokens) {
-	std::string str{"\""};
+	std::string str{};
 	bool has_dquote = false;
 	while (!is_end()) {
 		char c = esc_char();
-		str += c;
 		if (c == '"') {
 			has_dquote = true;
 			break;
 		}
+		str += c;
 	}
 	if (!has_dquote)
 		throw exception::ScanException('\0', lines,
@@ -153,9 +155,28 @@ void Scanner::scan_identifier(std::vector<Token> *tokens) {
 	while (!is_end() && is_letterN_Nnumber(cur_char())) {
 		current++;
 	}
-	tokens->emplace_back(lines, IDENTIFIER,
-	                     bytes->substr(start, current - start));
-	return;
+	if (match_keyword(tokens)) {
+		return;
+	} else {
+		tokens->emplace_back(lines, IDENTIFIER,
+		                     bytes->substr(start, current - start));
+		return;
+	}
+}
+
+bool Scanner::match_keyword(std::vector<Token> *tokens) {
+	auto it = keywords_map.find(bytes->substr(start, current - start));
+	if (it == keywords_map.end()) {
+		return false;
+	} else {
+		tokens->emplace_back(lines, it->second, it->first);
+		return true;
+	}
+}
+
+inline void Scanner::expect(char c, std::string msg) {
+	if (!match(c))
+		throw exception::ScanException(cur_char(), lines, msg);
 }
 
 } // namespace scanner
