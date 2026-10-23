@@ -19,77 +19,80 @@ std::string Token::toString() const {
 
 std::string Token::getTypeString() const { return type_map.at(this->type); }
 
+Scanner::Scanner(const icu::Normalizer2 *nfc) : nfc(nfc) {}
+
 std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 	vTokens *tokens = new vTokens;
-	bytes = &b;
+	auto u16str = UnicodeUtil::getU16String(b);
+	bytes = &u16str;
 	lines = 0, start = 0, current = 0;
 	while (!is_end()) {
 		start = current;
-		char c = cur_advance();
+		UChar32 c = cur_advance();
 		try {
 			switch (c) {
-			case '+':
-				tokens->emplace_back(lines, PLUS, std::string(1, c));
+			case U'+':
+				tokens->emplace_back(lines, PLUS, "+");
 				break;
-			case '-':
-				tokens->emplace_back(lines, MINUS, std::string(1, c));
+			case U'-':
+				tokens->emplace_back(lines, MINUS, "-");
 				break;
-			case '*':
-				tokens->emplace_back(lines, STAR, std::string(1, c));
+			case U'*':
+				tokens->emplace_back(lines, STAR, "*");
 				break;
-			case '/':
-				tokens->emplace_back(lines, SLASH, std::string(1, c));
+			case U'/':
+				tokens->emplace_back(lines, SLASH, "/");
 				break;
-			case '(':
-				tokens->emplace_back(lines, LEFT_PAREN, std::string(1, c));
+			case U'(':
+				tokens->emplace_back(lines, LEFT_PAREN, "(");
 				break;
-			case ')':
-				tokens->emplace_back(lines, RIGHT_PAREN, std::string(1, c));
+			case U')':
+				tokens->emplace_back(lines, RIGHT_PAREN, ")");
 				break;
-			case '<':
-				if (match('=')) {
+			case U'<':
+				if (match(U'=')) {
 					tokens->emplace_back(lines, LESS_EQUAL, "<=");
 				} else {
 					tokens->emplace_back(lines, LESS, "<");
 				}
 				break;
-			case '>':
-				if (match('=')) {
+			case U'>':
+				if (match(U'=')) {
 					tokens->emplace_back(lines, GREATER_EQUAL, ">=");
 				} else {
 					tokens->emplace_back(lines, GREATER, ">");
 				}
 				break;
-			case '=':
-				if (match('=')) {
+			case U'=':
+				if (match(U'=')) {
 					tokens->emplace_back(lines, EQUAL_EQUAL, "==");
 				} else {
 					tokens->emplace_back(lines, EQUAL, "=");
 				}
 				break;
-			case '!':
-				if (match('=')) {
+			case U'!':
+				if (match(U'=')) {
 					tokens->emplace_back(lines, BANG_EQUAL, "!=");
 				} else {
 					tokens->emplace_back(lines, BANG, "!");
 				}
 				break;
-			case '"':
+			case U'"':
 				scan_string(tokens);
 				break;
-			case '\'':
+			case U'\'':
 				scan_char(tokens);
 				break;
-			case '\n':
+			case U'\n':
 				lines++;
-			case '\t':
-			case ' ':
+			case U'\t':
+			case U' ':
 				break;
 			default:
 				if (is_number(c)) {
 					scan_number(tokens);
 					break;
-				} else if (is_letterN_(c)) {
+				} else if (UnicodeUtil::isXID_Start(c)) {
 					scan_identifier(tokens);
 				} else {
 					throw exception::ScanException(c, lines, "Unexpected Char");
@@ -109,63 +112,68 @@ std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 
 void Scanner::scan_number(vTokens *tokens) {
 	while (!is_end() && is_number(cur_char())) {
-		current++;
+	    advance(cur_char());
 	}
-	if (!is_end() && match('.')) {
+	if (!is_end() && match(U'.')) {
 		while (!is_end() && is_number(cur_char())) {
-			current++;
+		    advance(cur_char());
 		}
 		tokens->emplace_back(lines, FLOAT,
-		                     bytes->substr(start, current - start));
+		                     UnicodeUtil::getU8String(
+		                         bytes->tempSubString(start, current - start)));
 		return;
 	}
 	// std::string lexeme = bytes->substr(start, current - start);
 	// std::uint32_t value = std::stoi(lexeme);
 	// std::optional<Variant> variant = Variant(&value, Variant::Type::I32);
-	tokens->emplace_back(lines, INT, bytes->substr(start, current - start));
+	tokens->emplace_back(
+	    lines, INT,
+	    UnicodeUtil::getU8String(bytes->tempSubString(start, current - start)));
 	return;
 }
 
 void Scanner::scan_string(std::vector<Token> *tokens) {
-	std::string str{};
+	icu::UnicodeString str{};
 	bool has_dquote = false;
 	while (!is_end()) {
-		char c = esc_char();
-		if (c == '"') {
+		UChar32 c = esc_char();
+		if (c == U'"') {
 			has_dquote = true;
 			break;
 		}
 		str += c;
 	}
 	if (!has_dquote)
-		throw exception::ScanException('\0', lines,
+		throw exception::ScanException(U'\0', lines,
 		                               "Expect ' \" ' after String");
-	tokens->emplace_back(lines, STRING, str);
+	tokens->emplace_back(lines, STRING, UnicodeUtil::getU8String(str));
 	return;
 }
 
 void Scanner::scan_char(std::vector<Token> *tokens) {
 	if (!is_end()) {
-		tokens->emplace_back(lines, CHAR, std::string(1, esc_char()));
-		expect('\'', "Expect \" ' \" after Char");
+		tokens->emplace_back(lines, CHAR, UnicodeUtil::getU8String(esc_char()));
+		expect(U'\'', "Expect \" ' \" after Char");
 	}
 }
 
 void Scanner::scan_identifier(std::vector<Token> *tokens) {
-	while (!is_end() && is_letterN_Nnumber(cur_char())) {
-		current++;
+	while (!is_end() && UnicodeUtil::isXID_Continue(cur_char())) {
+		advance(cur_char());
 	}
 	if (match_keyword(tokens)) {
 		return;
 	} else {
 		tokens->emplace_back(lines, IDENTIFIER,
-		                     bytes->substr(start, current - start));
+		                     UnicodeUtil::getU8String(
+		                         bytes->tempSubString(start, current - start)));
 		return;
 	}
 }
 
 bool Scanner::match_keyword(std::vector<Token> *tokens) {
-	auto it = keywords_map.find(bytes->substr(start, current - start));
+	auto it = keywords_map.find(
+	    UnicodeUtil::getU8String(bytes->tempSubString(start, current - start)));
 	if (it == keywords_map.end()) {
 		return false;
 	} else {
@@ -174,7 +182,7 @@ bool Scanner::match_keyword(std::vector<Token> *tokens) {
 	}
 }
 
-inline void Scanner::expect(char c, std::string msg) {
+inline void Scanner::expect(UChar32 c, std::string msg) {
 	if (!match(c))
 		throw exception::ScanException(cur_char(), lines, msg);
 }

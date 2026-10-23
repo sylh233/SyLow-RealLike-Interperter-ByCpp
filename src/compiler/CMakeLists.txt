@@ -16,3 +16,5 @@ target_sources(compiler
   PRIVATE ${exception_src}
 )
 target_compile_features(compiler PRIVATE cxx_std_17)
+include(3rd_icu/icu.cmake)
+target_link_libraries(compiler PUBLIC ICU::uc ICU::i18n ICU::data) # ICU::io)

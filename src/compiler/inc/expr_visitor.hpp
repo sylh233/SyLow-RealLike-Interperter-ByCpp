@@ -21,8 +21,8 @@ class Evalator {
 	scanner::Variant visitUnary(Unary &unary);
 
 	inline scanner::Variant ifCharToInt(scanner::Variant &var) const {
-		if (std::holds_alternative<char>(var)) {
-			return static_cast<int>(std::get<char>(var));
+		if (std::holds_alternative<scanner::Char>(var)) {
+			return std::get<scanner::Char>(var).getInt();
 		} else {
 			return var;
 		}

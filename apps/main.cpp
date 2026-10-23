@@ -6,11 +6,17 @@
 #include <statement.hpp>
 #include <string>
 
+#include <unicode/unistr.h>
+
 int main() {
 	using namespace cbycpp;
-	scanner::Scanner s1{};
+	
+	UErrorCode status = U_ZERO_ERROR;
+	scanner::Scanner s1(icu::Normalizer2::getNFCInstance(status));
+	
 	// std::string bytes = "233.33+1/(19+66)";
 	bool quit_flag = true;
+	
 	while (quit_flag) {
 		std::cout << ">>> ";
 		std::string bytes{};
@@ -22,7 +28,7 @@ int main() {
 		// for (auto &token : *t) {
 		// 	std::cout << token.toString() << std::endl;
 		// }
-		
+
 		// std::unique_ptr<parser::Evalator> visitor;
 		// visitor.reset(new parser::Evalator());
 
@@ -33,7 +39,7 @@ int main() {
 
 		if (stmt != nullptr) {
 			visitor.visit(*stmt);
-		}
+			}
 
 		// parser::AST_printer astp{};
 
@@ -97,3 +103,13 @@ int main() {
 // 	var->get_value(&re);
 // 	std::cout << re << std::endl;
 // }
+
+/*std::string test0 = "你好👋";
+	std::cout << "Length: " << test0.length() << std::endl;
+	std::cout << "Content: " << test0 << std::endl;
+
+	icu::UnicodeString ustr0 = icu::UnicodeString::fromUTF8(test0);
+	std::cout << "Length: " << ustr0.length() << std::endl;
+	std::string restr0{};
+	ustr0.toUTF8String(restr0);
+	std::cout << "Content: " << restr0 << std::endl;*/

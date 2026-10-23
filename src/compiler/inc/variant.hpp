@@ -6,10 +6,22 @@
 #include <unordered_map>
 #include <variant>
 
+#include <unicode/uchar.h>
+
 namespace cbycpp {
 namespace scanner {
+class Char {
+  private:
+	UChar32 c;
+
+  public:
+	Char(UChar32 c) : c(c) {}
+	std::string toString() const;
+	inline std::int32_t getInt() const { return static_cast<std::int32_t>(c); }
+};
+
 using Variant =
-    std::variant<std::monostate, int, double, char, std::string, bool>;
+    std::variant<std::monostate, int, double, Char, std::string, bool>;
 
 std::string var_to_string(Variant &var);
 std::string VTStr_with_quote(Variant &var);

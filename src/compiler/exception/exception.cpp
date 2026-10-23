@@ -7,7 +7,7 @@ std::string ScanException::ExceptionMsg() const {
 	    "Scan Exception: " + msg + " [in line " + std::to_string(lines);
 	if (c == '\0')
 		return str + " at End]";
-	return str + " at Char '" + c + "']";
+	return str + " at Char '" + scanner::UnicodeUtil::getU8String(c) + "']";
 }
 
 std::string ParseException::ExceptionMsg() const {
@@ -15,7 +15,7 @@ std::string ParseException::ExceptionMsg() const {
 	    "Parse Exception: " + msg + " [in line " + std::to_string(token.lines);
 	if (token.type == scanner::END)
 		return str + " at End]";
-	return str + " at '" + token.lexeme + "']";
+	return str + " at \"" + token.lexeme + "\"]";
 }
 } // namespace exception
 

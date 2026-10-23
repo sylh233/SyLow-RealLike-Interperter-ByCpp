@@ -1,4 +1,5 @@
 #include <cstring>
+#include <unicode.hpp>
 #include <variant.hpp>
 
 namespace cbycpp {
@@ -8,8 +9,8 @@ std::string var_to_string(Variant &var) {
 		return std::to_string(std::get<int>(var));
 	} else if (std::holds_alternative<double>(var)) {
 		return std::to_string(std::get<double>(var));
-	} else if (std::holds_alternative<char>(var)) {
-		return std::string(1, std::get<char>(var));
+	} else if (std::holds_alternative<Char>(var)) {
+		return std::get<Char>(var).toString();
 	} else if (std::holds_alternative<std::string>(var)) {
 		return std::get<std::string>(var);
 	} else if (std::holds_alternative<bool>(var)) {
@@ -23,14 +24,16 @@ std::string var_to_string(Variant &var) {
 }
 
 std::string VTStr_with_quote(Variant &var) {
-	if (std::holds_alternative<char>(var)) {
-		return "'" + std::string(1, std::get<char>(var)) + "'";
+	if (std::holds_alternative<Char>(var)) {
+		return "'" + std::get<Char>(var).toString() + "'";
 	} else if (std::holds_alternative<std::string>(var)) {
 		return "\"" + std::get<std::string>(var) + "\"";
 	} else {
 		return var_to_string(var);
 	}
 }
+
+std::string Char::toString() const { return UnicodeUtil::getU8String(c); }
 } // namespace scanner
 } // namespace cbycpp
 

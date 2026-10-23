@@ -1,4 +1,5 @@
 #include <expr_visitor.hpp>
+#include <unicode.hpp>
 
 namespace cbycpp {
 namespace parser {
@@ -80,7 +81,8 @@ scanner::Variant Evalator::visitLiteral(Literal &literal) {
 	case scanner::FLOAT:
 		return std::stod(lit.lexeme);
 	case scanner::CHAR:
-		return lit.lexeme.at(0);
+		return scanner::Char(
+		    scanner::UnicodeUtil::getU16String(lit.lexeme).char32At(0));
 	case scanner::STRING:
 		return lit.lexeme;
 	case scanner::TRUE:

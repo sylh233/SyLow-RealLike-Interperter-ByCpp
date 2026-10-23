@@ -5,9 +5,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unicode.hpp>
 #include <unordered_map>
 #include <variant.hpp>
 #include <vector>
+
+#include <iostream>
 
 namespace cbycpp {
 namespace scanner {
@@ -95,9 +98,9 @@ class Token {
 
 class Scanner {
   private:
-	inline bool is_number(char c) const;
-	inline bool is_letterN_(char c) const;
-	inline bool is_letterN_Nnumber(char c) const;
+	inline bool is_number(UChar32 c) const;
+	inline bool is_letterN_(UChar32 c) const;
+	inline bool is_letterN_Nnumber(UChar32 c) const;
 	inline bool is_end() const;
 
 	void scan_number(std::vector<Token> *tokens);
@@ -106,36 +109,40 @@ class Scanner {
 	void scan_identifier(std::vector<Token> *tokens);
 	bool match_keyword(std::vector<Token> *tokens);
 
-	inline char cur_advance();
-	inline char cur_char();
-	inline bool match(char c);
-	inline char esc_char();
-	inline void expect(char c, std::string msg);
+	inline UChar32 advance(UChar32 c);
+	inline UChar32 cur_advance();
+	inline UChar32 cur_char();
+	inline bool match(UChar32 c);
+	inline UChar32 esc_char();
+	inline void expect(UChar32 c, std::string msg);
 
 	std::size_t lines{};
 	std::size_t start{}, current{};
-	std::string *bytes;
+	icu::UnicodeString *bytes;
+
+	const icu::Normalizer2 *nfc;
 
   public:
+	Scanner(const icu::Normalizer2 *nfc);
 	using vTokens = std::vector<Token>;
 	std::unique_ptr<vTokens> scan(std::string &input_bytes);
 };
 
-inline bool Scanner::is_number(char c) const {
-	if (c >= '0' && c <= '9')
+inline bool Scanner::is_number(UChar32 c) const {
+	if (c >= U'0' && c <= U'9')
 		return true;
 	else
 		return false;
 }
 
-inline bool Scanner::is_letterN_(char c) const {
-	if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_')
+inline bool Scanner::is_letterN_(UChar32 c) const {
+	if ((c >= U'A' && c <= U'Z') || (c >= U'a' && c <= U'z') || c == U'_')
 		return true;
 	else
 		return false;
 }
 
-inline bool Scanner::is_letterN_Nnumber(char c) const {
+inline bool Scanner::is_letterN_Nnumber(UChar32 c) const {
 	if (is_number(c) || is_letterN_(c))
 		return true;
 	else
@@ -150,41 +157,47 @@ inline bool Scanner::is_end() const {
 		return true;
 }
 
-inline char Scanner::cur_advance() {
-	if (is_end())
-		return '\0';
-	else
-		return bytes->at(current++);
+inline UChar32 Scanner::advance(UChar32 c) {
+	current += U16_LENGTH(c);
+	return c;
 }
 
-inline char Scanner::cur_char() {
+inline UChar32 Scanner::cur_advance() {
 	if (is_end())
-		return '\0';
-	else
-		return bytes->at(current);
+		return U'\0';
+	else {
+		return advance(cur_char());
+	}
 }
 
-inline bool Scanner::match(char c) {
+inline UChar32 Scanner::cur_char() {
+	if (is_end())
+		return U'\0';
+	else
+		return UnicodeUtil::getChar32At(*bytes, current);
+}
+
+inline bool Scanner::match(UChar32 c) {
 	if (!is_end() && cur_char() == c) {
-		current++;
+	    advance(cur_char());
 		return true;
 	} else
 		return false;
 }
 
-inline char Scanner::esc_char() {
-	if (match('\\')) {
+inline UChar32 Scanner::esc_char() {
+	if (match(U'\\')) {
 		switch (cur_advance()) {
-		case 'n':
-			return '\n';
-		case 't':
-			return '\t';
-		case '"':
-			return '"';
-		case '\'':
-			return '\'';
-		case '\\':
-			return '\\';
+		case U'n':
+			return U'\n';
+		case U't':
+			return U'\t';
+		case U'"':
+			return U'"';
+		case U'\'':
+			return U'\'';
+		case U'\\':
+			return U'\\';
 		default:
 			break;
 		}

@@ -5,16 +5,18 @@
 #include <scanner.hpp>
 #include <string>
 
+#include <unicode/uchar.h>
+
 namespace cbycpp {
 namespace exception {
 class ScanException {
   private:
 	const std::string msg;
 	const std::size_t lines;
-	const char c;
+	const UChar32 c;
 
   public:
-	ScanException(char c, std::size_t lines, std::string msg)
+	ScanException(UChar32 c, std::size_t lines, std::string msg)
 	    : c(c), lines(lines), msg(msg) {}
 	std::string ExceptionMsg() const;
 };
