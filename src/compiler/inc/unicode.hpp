@@ -50,7 +50,9 @@ class UnicodeUtil {
 		return icu_78::header::utfStringCodePoints<UChar32,
 		                                           UTF_BEHAVIOR_NEGATIVE>(
 		    std::move(string16));
-		// 对右值和左值的效果不一样，这里用右值
+		// 这个模板对右值和左值的效果不一样，这里用右值
+		// 用左值时，只建立引用，但这里的变量是形参，在函数结束就被释放了
+		// 而使用右值则将其储存起来
 	}
 
 	using U32It = decltype(U32String{}.begin());
