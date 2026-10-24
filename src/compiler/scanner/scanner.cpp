@@ -23,11 +23,11 @@ Scanner::Scanner(const icu::Normalizer2 *nfc) : nfc(nfc) {}
 
 std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 	vTokens *tokens = new vTokens;
-	auto u16str = UnicodeUtil::getU16String(b);
-	bytes = &u16str;
-	lines = 0, start = 0, current = 0;
+	auto u32str = UnicodeUtil::getU32String(UnicodeUtil::getNFCU16(nfc, b));
+	pU32It = std::make_unique<UnicodeUtil::U32It>(u32str.begin());
+	pU32End = std::make_unique<UnicodeUtil::U32It>(u32str.end());
+	lines = 0;
 	while (!is_end()) {
-		start = current;
 		UChar32 c = cur_advance();
 		try {
 			switch (c) {
@@ -90,10 +90,10 @@ std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 				break;
 			default:
 				if (is_number(c)) {
-					scan_number(tokens);
+					scan_number(c, tokens);
 					break;
 				} else if (UnicodeUtil::isXID_Start(c)) {
-					scan_identifier(tokens);
+					scan_identifier(c, tokens);
 				} else {
 					throw exception::ScanException(c, lines, "Unexpected Char");
 				}
@@ -110,25 +110,23 @@ std::unique_ptr<Scanner::vTokens> Scanner::scan(std::string &b) {
 	return std::unique_ptr<vTokens>(tokens);
 }
 
-void Scanner::scan_number(vTokens *tokens) {
+void Scanner::scan_number(UChar32 first, vTokens *tokens) {
+	icu::UnicodeString num(first);
 	while (!is_end() && is_number(cur_char())) {
-	    advance(cur_char());
+		num += cur_advance();
 	}
 	if (!is_end() && match(U'.')) {
+		num += ".";
 		while (!is_end() && is_number(cur_char())) {
-		    advance(cur_char());
+			num += cur_advance();
 		}
-		tokens->emplace_back(lines, FLOAT,
-		                     UnicodeUtil::getU8String(
-		                         bytes->tempSubString(start, current - start)));
+		tokens->emplace_back(lines, FLOAT, UnicodeUtil::getU8String(num));
 		return;
 	}
 	// std::string lexeme = bytes->substr(start, current - start);
 	// std::uint32_t value = std::stoi(lexeme);
 	// std::optional<Variant> variant = Variant(&value, Variant::Type::I32);
-	tokens->emplace_back(
-	    lines, INT,
-	    UnicodeUtil::getU8String(bytes->tempSubString(start, current - start)));
+	tokens->emplace_back(lines, INT, UnicodeUtil::getU8String(num));
 	return;
 }
 
@@ -157,23 +155,22 @@ void Scanner::scan_char(std::vector<Token> *tokens) {
 	}
 }
 
-void Scanner::scan_identifier(std::vector<Token> *tokens) {
+void Scanner::scan_identifier(UChar32 first, std::vector<Token> *tokens) {
+	icu::UnicodeString id(first);
 	while (!is_end() && UnicodeUtil::isXID_Continue(cur_char())) {
-		advance(cur_char());
+		id += cur_advance();
 	}
-	if (match_keyword(tokens)) {
+	if (match_keyword(id, tokens)) {
 		return;
 	} else {
-		tokens->emplace_back(lines, IDENTIFIER,
-		                     UnicodeUtil::getU8String(
-		                         bytes->tempSubString(start, current - start)));
+		tokens->emplace_back(lines, IDENTIFIER, UnicodeUtil::getU8String(id));
 		return;
 	}
 }
 
-bool Scanner::match_keyword(std::vector<Token> *tokens) {
-	auto it = keywords_map.find(
-	    UnicodeUtil::getU8String(bytes->tempSubString(start, current - start)));
+bool Scanner::match_keyword(icu::UnicodeString ustr,
+                            std::vector<Token> *tokens) {
+	auto it = keywords_map.find(UnicodeUtil::getU8String(ustr));
 	if (it == keywords_map.end()) {
 		return false;
 	} else {

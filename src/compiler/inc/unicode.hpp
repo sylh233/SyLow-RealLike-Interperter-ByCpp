@@ -2,10 +2,12 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
 
 #include <unicode/normalizer2.h>
 #include <unicode/uchar.h>
 #include <unicode/unistr.h>
+#include <unicode/utfiterator.h>
 
 namespace cbycpp {
 namespace scanner {
@@ -15,9 +17,9 @@ class UnicodeUtil {
 		return icu::UnicodeString::fromUTF8(string);
 	}
 
-	inline static std::string getU8String(icu::UnicodeString string) {
+	inline static std::string getU8String(icu::UnicodeString string16) {
 		std::string re{};
-		string.toUTF8String(re);
+		string16.toUTF8String(re);
 		return re;
 	}
 
@@ -39,14 +41,28 @@ class UnicodeUtil {
 		return re;
 	}
 
-	inline static UChar32 getChar32At(const icu::UnicodeString &string,
-	                                  std::size_t index) {
-		auto Size = string.length();
-		if (index < Size) {
-			return string.char32At(index);
-		}
-		return {};
+	using U32String =
+	    decltype(icu_78::header::utfStringCodePoints<UChar32,
+	                                                 UTF_BEHAVIOR_NEGATIVE>(
+	        std::declval<icu::UnicodeString>()));
+
+	inline static U32String getU32String(icu::UnicodeString string16) {
+		return icu_78::header::utfStringCodePoints<UChar32,
+		                                           UTF_BEHAVIOR_NEGATIVE>(
+		    std::move(string16));
+		// 对右值和左值的效果不一样，这里用右值
 	}
+
+	using U32It = decltype(U32String{}.begin());
+
+	// inline static UChar32 getChar32At(const icu::UnicodeString &string,
+	//                                   std::size_t index) {
+	// 	auto Size = string.length();
+	// 	if (index < Size) {
+	// 		return string.char32At(index);
+	// 	}
+	// 	return {};
+	// }
 
 	inline static bool isXID_Start(UChar32 c) {
 		if (c == U'_')

@@ -103,13 +103,13 @@ class Scanner {
 	inline bool is_letterN_Nnumber(UChar32 c) const;
 	inline bool is_end() const;
 
-	void scan_number(std::vector<Token> *tokens);
+	void scan_number(UChar32 first, std::vector<Token> *tokens);
 	void scan_string(std::vector<Token> *tokens);
 	void scan_char(std::vector<Token> *tokens);
-	void scan_identifier(std::vector<Token> *tokens);
-	bool match_keyword(std::vector<Token> *tokens);
+	void scan_identifier(UChar32 first, std::vector<Token> *tokens);
+	bool match_keyword(icu::UnicodeString ustr, std::vector<Token> *tokens);
 
-	inline UChar32 advance(UChar32 c);
+	// inline UChar32 advance(UChar32 c);
 	inline UChar32 cur_advance();
 	inline UChar32 cur_char();
 	inline bool match(UChar32 c);
@@ -117,8 +117,9 @@ class Scanner {
 	inline void expect(UChar32 c, std::string msg);
 
 	std::size_t lines{};
-	std::size_t start{}, current{};
-	icu::UnicodeString *bytes;
+	// std::size_t start{}, current{};
+	std::unique_ptr<UnicodeUtil::U32It> pU32It{};
+	std::unique_ptr<UnicodeUtil::U32It> pU32End{};
 
 	const icu::Normalizer2 *nfc;
 
@@ -151,22 +152,22 @@ inline bool Scanner::is_letterN_Nnumber(UChar32 c) const {
 }
 
 inline bool Scanner::is_end() const {
-	if (current < bytes->length())
+	if (*pU32It != *pU32End)
 		return false;
 	else
 		return true;
 }
 
-inline UChar32 Scanner::advance(UChar32 c) {
-	current += U16_LENGTH(c);
-	return c;
-}
+// inline UChar32 Scanner::advance(UChar32 c) {
+// 	current += U16_LENGTH(c);
+// 	return c;
+// }
 
 inline UChar32 Scanner::cur_advance() {
 	if (is_end())
 		return U'\0';
 	else {
-		return advance(cur_char());
+		return (*((*pU32It)++)).codePoint();
 	}
 }
 
@@ -174,12 +175,12 @@ inline UChar32 Scanner::cur_char() {
 	if (is_end())
 		return U'\0';
 	else
-		return UnicodeUtil::getChar32At(*bytes, current);
+		return (**pU32It).codePoint();
 }
 
 inline bool Scanner::match(UChar32 c) {
 	if (!is_end() && cur_char() == c) {
-	    advance(cur_char());
+		(*pU32It)++;
 		return true;
 	} else
 		return false;

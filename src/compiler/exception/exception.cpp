@@ -12,10 +12,8 @@ std::string ScanException::ExceptionMsg() const {
 
 std::string ParseException::ExceptionMsg() const {
 	std::string str =
-	    "Parse Exception: " + msg + " [in line " + std::to_string(token.lines);
-	if (token.type == scanner::END)
-		return str + " at End]";
-	return str + " at \"" + token.lexeme + "\"]";
+	    "Parse Exception: " + msg;
+	return str + " at " + token.toString();
 }
 } // namespace exception
 
